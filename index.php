@@ -8,56 +8,83 @@ use Symfony\Component\HttpFoundation\Response;
 
 $request = Request::createFromGlobals();
 $path = $request->getPathInfo();
+$searcher = new \Squiz\PhpCodeExam\Searcher();
 
 logMsg(
     sprintf('Got request %s', json_encode($request)),
     'request'
 );
 
-try {
-    if (preg_match('/contents/', $path) !== 0) {
-        if ($request->query->get('term') !== null) {
-            $term = $request->query->get('term');
-        }
+function checkTerm($request) 
+{
+    $param = $request->query->get('term');
+    if ($param !== null) {
+        return $param;
+    }
+    return false;
+}
 
+function sendRes($data = [], $status = 200)
+{
+    $response = new JsonResponse([
+        "data" => $data,
+    ], $status);
+
+    logMsg(
+        sprintf('Sent response %s', $response->getContent()),
+        'response'
+    );
+
+    $response->send();
+    exit(0);
+}
+
+function searchExecute($searcher, $term, $type)
+{
+    $result = $searcher->execute($term, $type);
+    if ($result) {
+        sendRes($result);
+    }
+    sendRes([], 400);
+}
+
+try {
+
+    if (preg_match('/contents/', $path) !== 0) {
         header('Content-Type: application/json; charset=utf-8');
-        $response = new JsonResponse(['data' => (new \Squiz\PhpCodeExam\Searcher())->execute($term, $type = 'content')], Response::HTTP_OK);
-        logMsg(
-            sprintf('Sent response %s', $response->getContent()),
-            'response'
-        );
-        $response->send();
-        exit(0);
+        $term = checkTerm($request);
+        if ($term) {
+            searchExecute($searcher, $term, 'content');
+        } else {
+            // probably want a 404 page or something
+        }
     }
 
     if (preg_match('/tags/', $path) !== 0) {
-
-        if ($request->query->get('term') != null) {
-            $term = $request->query->get('term');
-        }
-
         header('Content-Type: application/json; charset=utf-8');
-        $response = new JsonResponse(['data' => (new \Squiz\PhpCodeExam\Searcher())->execute($term, 'tags')], Response::HTTP_OK);
-        $response->send();
-        logMsg(
-            sprintf('Sent response %s', $response->getContent()),
-            'response'
-        );
-        exit(0);
+        $term = checkTerm($request);
+        if ($term) {
+            searchExecute($searcher, $term, 'tag');
+        }
     }
 
     if (preg_match('/pages/', $path) !== 0) {
 
         $paths = explode('/', $path);
-        $id = $paths[2];
-
-        header('Content-Type: application/json; charset=utf-8');
-        $response = new JsonResponse(['data' => (new \Squiz\PhpCodeExam\Searcher())->getPageById($id)], Response::HTTP_PARTIAL_CONTENT);
-        $response->send();
-        die();
+        $id = array_pop($paths);
+        if (is_int($id)) {
+            $data = $searcher->getPageById($id);
+            sendRes($data, 200);
+        }
     }
 
-    $searcher = new \Squiz\PhpCodeExam\Searcher();
+    /**
+     * TODO 
+     * swap if stmt to switch case 
+     * add below into its own function -> call on default 
+     * move onto tidying the search class
+     */
+
     $data = $searcher->allData;
 
     $null = NULL;

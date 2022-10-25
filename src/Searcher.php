@@ -49,10 +49,9 @@ class Searcher
     public function getPageById($id)
     {
         $pageIds = array_column($this->allData, 'id');
-        if (in_array($id, $pageIds)) {
-            return $this->allData[array_flip($pageIds)[$id]];
+        $key = array_search($id, $pageIds);
+        if ($key) {
+            return $this->allData[$key];
         }
-
-        return $id;
     }
 }
