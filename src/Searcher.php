@@ -19,31 +19,52 @@ class Searcher
         $this->allData = (new TestData())->getFromDbMock();
     }
 
-    public function execute($term, $type)
+    // get term related to contents
+    // term = search term e.g. yellow
+    private function executeContents($term)
     {
-        foreach ($this->allData as $key => $value) {
-            foreach ($value as $index => $reference) {
-                if ($index === $type) {
-                    if ($reference === $term) {
-                        return $this->allData[$key];
-                    }
+        $result = [];
+        foreach($this->allData as $key => $data) {
+            if (!isset($data['content'])) {
+                continue;
+            }
 
-                    if (is_array($reference)) {
-                        if (in_array($term, $reference)) {
-                            if ($type === 'tags') {
-                                return isset($this->allData[$key]) ? $this->allData[$key] : null;
-                            }
-                        }
-                    }
+            $content = $data['content'];
 
-                    if (strpos($reference, $term) > 0) {
-                        return $this->allData[$key];
-                    }
-                }
+            if (strrpos($content, strtolower($term)) > 0) {
+                array_push($result, $data);
+            } 
+        }
+        return empty($result) ? false : $result;
+    }
+
+    // get term related to tags 
+    // term = search term e.g. galaxy
+    private function executeTags($term)
+    {
+        $result = [];
+        foreach($this->allData as $key => $data) {
+            if (!isset($data['tags'])) {
+                continue;
+            }
+
+            $tags = $data['tags'];
+
+            if (in_array($term, $tags)) {
+                array_push($result, $data);
             }
         }
+        return empty($result) ? false : $result;
+    }
 
-        return false;
+    public function execute($term, $type)
+    {
+        if ($type === 'content') {
+            return $this->executeContents($term);
+        }
+        if ($type === 'tags') {
+            return $this->executeTags($term);
+        }
     }
 
     public function getPageById($id)

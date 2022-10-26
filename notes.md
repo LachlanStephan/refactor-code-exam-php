@@ -11,8 +11,8 @@
 ### Execute
 
 -   Takes two params (term and type)
--   @term:
--   @type:
+-   @term: query paran holding search term
+-   @type: the type that the term is searching e.g filter contents by yellow
 
 ### getPageById
 
